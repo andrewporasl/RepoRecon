@@ -19,7 +19,7 @@ interface AnalysisCard {
     diff: DiffLine[];
 }
 
-const mockAnalyses: AnalysisCard[] = [
+const fallbackAnalyses: AnalysisCard[] = [
     {
         id: "eval-001",
         title: "Module System Migration",
@@ -29,56 +29,10 @@ const mockAnalyses: AnalysisCard[] = [
         progress: 100,
         diff: [
             { type: "remove", content: 'const Module = require("./types")' },
-            { type: "remove", content: 'const { validate } = require("./utils")' },
             { type: "add", content: 'import { Module } from "./types"' },
-            { type: "add", content: 'import { validate } from "./utils"' },
-            { type: "context", content: "" },
             { type: "context", content: "export function processData(input: Module) {" },
-            { type: "remove", content: "  const result = validate(input, false)" },
-            { type: "add", content: "  const result = validate(input)" },
             { type: "context", content: "  return result" },
             { type: "context", content: "}" },
-        ],
-    },
-    {
-        id: "eval-002",
-        title: "Authentication Refactor",
-        summary:
-            "Session management has been consolidated into a single middleware layer. Token refresh logic was extracted from individual route handlers into a centralized interceptor.",
-        status: "thinking",
-        progress: 62,
-        diff: [
-            { type: "context", content: "// middleware.ts" },
-            { type: "add", content: "import { refreshToken } from './auth/refresh'" },
-            { type: "add", content: "import { validateSession } from './auth/session'" },
-            { type: "context", content: "" },
-            { type: "remove", content: "export function middleware(req: Request) {" },
-            { type: "add", content: "export async function middleware(req: Request) {" },
-            { type: "add", content: "  const session = await validateSession(req)" },
-            { type: "add", content: "  if (!session.valid) return refreshToken(req)" },
-            { type: "context", content: "  return NextResponse.next()" },
-            { type: "context", content: "}" },
-        ],
-    },
-    {
-        id: "eval-003",
-        title: "Database Query Optimization",
-        summary:
-            "N+1 queries in the user listing endpoint have been replaced with a single joined query. Estimated response time improvement of 3.2x based on query plan analysis.",
-        status: "thinking",
-        progress: 28,
-        diff: [
-            { type: "context", content: "// users.repository.ts" },
-            { type: "remove", content: "const users = await db.query('SELECT * FROM users')" },
-            { type: "remove", content: "for (const user of users) {" },
-            { type: "remove", content: "  user.posts = await db.query('SELECT * FROM posts WHERE author_id = ?', [user.id])" },
-            { type: "remove", content: "}" },
-            { type: "add", content: "const users = await db.query(`" },
-            { type: "add", content: "  SELECT u.*, json_agg(p.*) as posts" },
-            { type: "add", content: "  FROM users u" },
-            { type: "add", content: "  LEFT JOIN posts p ON p.author_id = u.id" },
-            { type: "add", content: "  GROUP BY u.id" },
-            { type: "add", content: "`)" },
         ],
     },
 ];
@@ -171,6 +125,28 @@ function StatusLabel({ status }: { status: AnalysisStatus }) {
 }
 
 export default function InsightsPage() {
+    const [analyses, setAnalyses] = useState<AnalysisCard[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetch("/api/insights")
+            .then((res) => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then((data) => {
+                setAnalyses(data);
+                setLoading(false);
+            })
+            .catch((err) => {
+                console.error("Failed to fetch insights, using fallback:", err);
+                setError("Backend unavailable — showing cached data");
+                setAnalyses(fallbackAnalyses);
+                setLoading(false);
+            });
+    }, []);
+
     return (
         <div className="flex flex-col gap-8">
             <header>
@@ -180,8 +156,24 @@ export default function InsightsPage() {
                 </p>
             </header>
 
+            {error && (
+                <div className="text-xs text-zinc-600 bg-zinc-900/50 border border-zinc-800 rounded px-3 py-2">
+                    {error}
+                </div>
+            )}
+
+            {loading ? (
+                <div className="flex flex-col gap-6">
+                    {[1, 2].map((i) => (
+                        <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 animate-pulse">
+                            <div className="h-4 bg-zinc-800 rounded w-1/3 mb-4" />
+                            <div className="h-3 bg-zinc-800 rounded w-2/3" />
+                        </div>
+                    ))}
+                </div>
+            ) : (
             <div className="grid gap-6">
-                {mockAnalyses.map((analysis, index) => (
+                {analyses.map((analysis, index) => (
                     <motion.div
                         key={analysis.id}
                         initial={{ opacity: 0, y: 12 }}
@@ -208,6 +200,7 @@ export default function InsightsPage() {
                     </motion.div>
                 ))}
             </div>
+            )}
         </div>
     );
 }
