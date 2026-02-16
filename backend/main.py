@@ -6,15 +6,15 @@ from fastapi.responses import JSONResponse
 import os
 from dotenv import load_dotenv
 
-from backend.models import (
+from .models import (
     ActivityItem,
     InsightCard,
     DiffLine,
     TerminalRequest,
     TerminalResponse,
 )
-from backend.github_client import GitHubClient
-from backend.webhook_handler import WebhookHandler
+from .github_client import GitHubClient
+from .webhook_handler import WebhookHandler
 
 load_dotenv()
 
