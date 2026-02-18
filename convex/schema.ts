@@ -15,7 +15,7 @@ const schema = defineSchema({
         // Custom GitHub fields
         githubUsername: v.optional(v.string()),
         githubId: v.optional(v.string()),
-    }),
+    }).index("email", ["email"]),
 
     // Store GitHub access tokens securely (server-side only)
     githubTokens: defineTable({
