@@ -1,11 +1,19 @@
 @echo off
+setlocal
 
-REM Only copy .env if it doesn't exist
-if not exist .env (
-    echo Creating .env from .env.example...
-    copy .env.example .env > nul
-    echo [WARNING] Please update .env with your GITHUB_TOKEN and SMEE_URL!
+if not exist .venv\Scripts\python.exe (
+    echo [start-dev] Python virtual environment not found. Running npm run setup...
+    call npm run setup
+    if errorlevel 1 (
+        echo [start-dev] Setup failed. Fix errors above, then retry.
+        exit /b 1
+    )
 )
 
-echo Starting all services with global Python...
-npm run dev:all
+if not exist .env.local (
+    echo [start-dev] .env.local not found. Creating from .env.example...
+    copy .env.example .env.local > nul
+)
+
+echo [start-dev] Starting Next.js + FastAPI (+ Convex when configured)...
+call npm run dev:all:windows

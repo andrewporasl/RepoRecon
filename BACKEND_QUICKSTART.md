@@ -1,93 +1,106 @@
-# Backend Quick Start Guide
+# Backend Quick Start
 
-This guide will get your FastAPI backend running in minutes.
+This guide starts FastAPI + Convex + Next.js with secure defaults.
 
-## 1. Prerequisites: Ollama Setup
+## Prerequisites
 
-The AI terminal requires **Ollama** to be running locally.
+- Node.js 20+
+- npm 9+
+- Python 3.10, 3.11, or 3.12
+- Optional: Ollama (`ollama serve`) for local model inference
 
-1.  **Install Ollama**: Download from [ollama.com](https://ollama.com).
-2.  **Start Service**: Run `ollama serve` in a terminal.
-3.  **Pull Model**: Run `ollama pull llama3` to download the default model.
-
-## 2. One-Command Setup
+## 1. Install and bootstrap
 
 ```bash
-# This installs Python dependencies globally or in your current environment
-pip install -r requirements.txt
+git clone <your-repo-url>
+cd RepoRecon
+npm run setup
 ```
 
-## 3. Configure Your Credentials
+`npm run setup`:
+- installs Node dependencies
+- creates `.venv`
+- installs Python dependencies
+- creates `.env.local` from `.env.example` if missing
 
-Edit `.env` (created from `.env.example`) with your GitHub token:
+## 2. Configure local env
+
+Edit `.env.local` or use `http://localhost:3000/setup`.
+If you use `/setup`, leave OAuth sync enabled so Convex env gets updated automatically.
+
+Minimum required:
 
 ```env
-GITHUB_TOKEN=ghp_xxxxxxxxxxxx  # Your GitHub Personal Access Token
-GITHUB_REPO=andrewporasl/RepoRecon
+GITHUB_REPO=owner/repo
+NEXT_PUBLIC_CONVEX_URL=https://<deployment>.convex.cloud
+CONVEX_SITE_URL=https://<deployment>.convex.site
+SITE_URL=http://localhost:3000
 ```
 
-### Get Your GitHub Token
+For GitHub API data:
 
-1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
-2. Click "Generate new token (classic)"
-3. Select these scopes: `repo` (full control), `read:user`.
+```env
+GITHUB_TOKEN=ghp_...
+```
 
-## 4. Run Everything (Recommended)
+For GitHub OAuth sign-in:
 
-Instead of managing multiple terminals, use the unified dev command:
+```env
+AUTH_GITHUB_ID=...
+AUTH_GITHUB_SECRET=...
+```
+
+For AI provider:
+
+```env
+AI_PROVIDER=auto
+```
+
+## 3. Start services
 
 ```bash
-# Windows
-.\start-dev.bat
-
-# Manual
 npm run dev:all
 ```
 
-This will automatically start:
-1.  **Frontend**: Next.js on `localhost:3000`
-2.  **Backend**: FastAPI on `localhost:8000` (using your global Python)
-3.  **Database**: Convex environment
+Services:
+- Next.js on `http://localhost:3000`
+- FastAPI on `http://localhost:8000`
+- Convex dev (if `CONVEX_DEPLOYMENT` is set)
 
----
+## 4. Health checks
 
-## 5. Verify It's Working
-
-### Check Backend Health
 ```bash
 curl http://localhost:8000/health
-```
-
-### Check Terminal (AI Agent)
-```bash
 curl -X POST http://localhost:8000/api/terminal \
   -H "Content-Type: application/json" \
-  -d '{"message": "Hello Strategist"}'
+  -d '{"message":"status","provider":"mock"}'
 ```
 
-## 6. Project Structure
+## 5. OAuth correctness checks
 
-```
-backend/
-├── main.py              # FastAPI app, Ollama integration
-├── github_client.py     # GitHub API integration
-├── models.py            # Pydantic data models
-└── webhook_handler.py   # Webhook processing logic
+1. Push Convex functions/schema:
+
+```bash
+npx convex dev --once
 ```
 
-## 7. Troubleshooting
+2. Ensure GitHub OAuth callback URL is:
 
-### `Ollama Connection Failed`
-- Ensure `ollama serve` is running.
-- Ensure you have run `ollama pull llama3`.
+```text
+https://<your-convex-deployment>.convex.site/api/auth/callback/github
+```
 
-### `ModuleNotFoundError`
-- Ensure you have run `pip install -r requirements.txt`.
-- If using multiple Python versions, ensure `python` in your path matches the one where you installed dependencies.
+3. Ensure Convex env vars are present:
 
-### CORS Errors
-- Backend is configured for `http://localhost:3000`. If running on a different port, update `allow_origins` in `backend/main.py`.
+```bash
+npx convex env set AUTH_GITHUB_ID <client_id>
+npx convex env set AUTH_GITHUB_SECRET <client_secret>
+npx convex env set SITE_URL http://localhost:3000
+```
 
----
+## Troubleshooting
 
-**Questions?** Check the main Backend.md guide or review the code comments.
+- `Invalid or missing NEXT_PUBLIC_CONVEX_URL`: set it in `.env.local`, then restart.
+- `AI provider unavailable`: run Ollama or set API key, or use `AI_PROVIDER=mock`.
+- OpenAI `429 insufficient_quota`: valid key, but no usable quota/billing.
+- GitHub auth callback fails: run `npx convex dev --once` to apply latest schema indexes.

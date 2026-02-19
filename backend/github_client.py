@@ -10,6 +10,7 @@ load_dotenv()
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = os.getenv("GITHUB_REPO", "andrewporasl/RepoRecon")
+GITHUB_TIMEOUT_SEC = float(os.getenv("GITHUB_TIMEOUT_SEC", "10"))
 
 
 class GitHubClient:
@@ -17,13 +18,13 @@ class GitHubClient:
 
     BASE_URL = "https://api.github.com"
 
-    def __init__(self, token: str = GITHUB_TOKEN, repo: str = GITHUB_REPO):
+    def __init__(self, token: str = GITHUB_TOKEN, repo: str = GITHUB_REPO, timeout_sec: float = GITHUB_TIMEOUT_SEC):
         self.token = token
         self.repo = repo
-        self.headers = {
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.v3+json",
-        }
+        self.timeout_sec = timeout_sec
+        self.headers = {"Accept": "application/vnd.github.v3+json"}
+        if token:
+            self.headers["Authorization"] = f"token {token}"
 
     def get_recent_activity(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Fetch recent pulls, commits, and issues."""
@@ -33,7 +34,7 @@ class GitHubClient:
         try:
             prs_url = f"{self.BASE_URL}/repos/{self.repo}/pulls"
             params = {"state": "all", "sort": "updated", "direction": "desc", "per_page": 5}
-            response = requests.get(prs_url, headers=self.headers, params=params)
+            response = requests.get(prs_url, headers=self.headers, params=params, timeout=self.timeout_sec)
             response.raise_for_status()
 
             for pr in response.json():
@@ -51,7 +52,7 @@ class GitHubClient:
         try:
             commits_url = f"{self.BASE_URL}/repos/{self.repo}/commits"
             params = {"per_page": 5}
-            response = requests.get(commits_url, headers=self.headers, params=params)
+            response = requests.get(commits_url, headers=self.headers, params=params, timeout=self.timeout_sec)
             response.raise_for_status()
 
             for commit in response.json():
@@ -70,7 +71,7 @@ class GitHubClient:
         try:
             issues_url = f"{self.BASE_URL}/repos/{self.repo}/issues"
             params = {"state": "all", "sort": "updated", "direction": "desc", "per_page": 3}
-            response = requests.get(issues_url, headers=self.headers, params=params)
+            response = requests.get(issues_url, headers=self.headers, params=params, timeout=self.timeout_sec)
             response.raise_for_status()
 
             for issue in response.json():
@@ -92,7 +93,7 @@ class GitHubClient:
         """Fetch repository metadata."""
         try:
             url = f"{self.BASE_URL}/repos/{self.repo}"
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, timeout=self.timeout_sec)
             response.raise_for_status()
             return response.json()
         except Exception as e:

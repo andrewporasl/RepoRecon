@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
     role: "user" | "agent";
     content: string;
     timestamp: string;
+    providerUsed?: "ollama" | "api" | "mock" | "fallback";
 }
 
 export default function TerminalPage() {
@@ -18,6 +19,7 @@ export default function TerminalPage() {
         },
     ]);
     const [input, setInput] = useState("");
+    const [provider, setProvider] = useState<"auto" | "ollama" | "api" | "mock">("auto");
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +31,7 @@ export default function TerminalPage() {
         scrollToBottom();
     }, [messages, loading]);
 
-    const handleSubmit = async (e?: React.FormEvent) => {
+    const handleSubmit = async (e?: FormEvent) => {
         if (e) e.preventDefault();
         if (!input.trim() || loading) return;
 
@@ -52,12 +54,20 @@ export default function TerminalPage() {
             const response = await fetch("/api/terminal", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userMessage }),
+                body: JSON.stringify({ message: userMessage, provider }),
             });
 
-            if (!response.ok) throw new Error("Failed to fetch response");
+            let data: { response?: string; provider_used?: "ollama" | "api" | "mock" | "fallback"; detail?: string } = {};
+            try {
+                data = await response.json();
+            } catch {
+                data = {};
+            }
 
-            const data = await response.json();
+            if (!response.ok) {
+                const detail = data.detail || `Backend request failed (${response.status})`;
+                throw new Error(detail);
+            }
 
             setMessages((prev) => [
                 ...prev,
@@ -68,15 +78,17 @@ export default function TerminalPage() {
                         hour: "2-digit",
                         minute: "2-digit",
                     }),
+                    providerUsed: data.provider_used,
                 },
             ]);
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
             console.error("Failed to send message:", error);
             setMessages((prev) => [
                 ...prev,
                 {
                     role: "agent",
-                    content: "I'm having trouble connecting to the backend. Please check your connection.",
+                    content: `Backend error: ${errorMessage}`,
                     timestamp: new Date().toLocaleTimeString("en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -117,6 +129,11 @@ export default function TerminalPage() {
                                     </div>
                                 )}
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
+                                {msg.providerUsed && (
+                                    <p className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                                        provider: {msg.providerUsed}
+                                    </p>
+                                )}
                             </div>
                         </motion.div>
                     ))}
@@ -139,6 +156,23 @@ export default function TerminalPage() {
             {/* Input Area */}
             <div className="flex-none pt-4 pb-6 px-4 bg-background/80 backdrop-blur-sm sticky bottom-0">
                 <form onSubmit={handleSubmit} className="relative max-w-3xl mx-auto">
+                    <div className="mb-2 flex items-center gap-2">
+                        <label htmlFor="provider" className="text-xs text-muted-foreground uppercase tracking-wider">
+                            Provider
+                        </label>
+                        <select
+                            id="provider"
+                            value={provider}
+                            onChange={(e) => setProvider(e.target.value as "auto" | "ollama" | "api" | "mock")}
+                            disabled={loading}
+                            className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+                        >
+                            <option value="auto">Auto</option>
+                            <option value="ollama">Ollama (local)</option>
+                            <option value="api">API key</option>
+                            <option value="mock">Mock (test mode)</option>
+                        </select>
+                    </div>
                     <input
                         type="text"
                         value={input}

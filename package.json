@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:all": "concurrently --names \"Convex,Next,API\" --prefix-colors \"yellow,blue,green\" \"npx convex dev\" \"next dev\" \"python -m uvicorn backend.main:app --reload --port 8000\"",
+    "setup": "node scripts/setup.mjs",
+    "dev:all": "node scripts/dev-all.mjs",
+    "dev:all:mac": "node scripts/dev-all.mjs",
+    "dev:all:windows": "node scripts/dev-all.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

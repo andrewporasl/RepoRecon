@@ -8,14 +8,18 @@ const schema = defineSchema({
     // Extend default users table with GitHub-specific fields
     users: defineTable({
         name: v.optional(v.string()),
-        email: v.optional(v.string()),
         image: v.optional(v.string()),
-        emailVerificationTime: v.optional(v.float64()),
+        email: v.optional(v.string()),
+        emailVerificationTime: v.optional(v.number()),
+        phone: v.optional(v.string()),
+        phoneVerificationTime: v.optional(v.number()),
         isAnonymous: v.optional(v.boolean()),
         // Custom GitHub fields
         githubUsername: v.optional(v.string()),
         githubId: v.optional(v.string()),
-    }),
+    })
+        .index("email", ["email"])
+        .index("phone", ["phone"]),
 
     // Store GitHub access tokens securely (server-side only)
     githubTokens: defineTable({

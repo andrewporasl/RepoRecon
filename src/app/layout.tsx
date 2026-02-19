@@ -30,6 +30,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "";
+  const convexConfigured = convexUrl.startsWith("http://") || convexUrl.startsWith("https://");
+
   return (
     <html lang="en">
       <body
@@ -56,6 +59,7 @@ export default function RootLayout({
                 { name: "Activity Feed", href: "/activity" },
                 { name: "Agent Insights", href: "/insights" },
                 { name: "Terminal", href: "/terminal" },
+                { name: "Setup", href: "/setup" },
               ].map((item) => (
                 <Link
                   key={item.href}
@@ -69,7 +73,13 @@ export default function RootLayout({
 
             {/* User */}
             <div className="mt-auto">
-              <UserMenu />
+              {convexConfigured ? (
+                <UserMenu />
+              ) : (
+                <div className="px-3 py-2 text-xs text-muted-foreground border border-border rounded-md">
+                  Configure Convex in Setup
+                </div>
+              )}
             </div>
           </aside>
 

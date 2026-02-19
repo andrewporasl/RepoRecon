@@ -42,7 +42,6 @@ function ProgressBar({ progress, status }: { progress: number; status: AnalysisS
 
     useEffect(() => {
         if (status === "complete") {
-            setAnimatedProgress(100);
             return;
         }
         const interval = setInterval(() => {
@@ -57,12 +56,14 @@ function ProgressBar({ progress, status }: { progress: number; status: AnalysisS
         return () => clearInterval(interval);
     }, [progress, status]);
 
+    const displayProgress = status === "complete" ? 100 : animatedProgress;
+
     return (
         <div className="h-[2px] w-full bg-border/50 overflow-hidden">
             <motion.div
                 className="h-full bg-primary"
                 initial={{ width: 0 }}
-                animate={{ width: `${animatedProgress}%` }}
+                animate={{ width: `${displayProgress}%` }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
             />
         </div>
