@@ -2,166 +2,91 @@
 
 This guide will get your FastAPI backend running in minutes.
 
-## 1. One-Command Setup
+## 1. Prerequisites: Ollama Setup
+
+The AI terminal requires **Ollama** to be running locally.
+
+1.  **Install Ollama**: Download from [ollama.com](https://ollama.com).
+2.  **Start Service**: Run `ollama serve` in a terminal.
+3.  **Pull Model**: Run `ollama pull llama3` to download the default model.
+
+## 2. One-Command Setup
 
 ```bash
-bash setup-backend.sh
+# This installs Python dependencies globally or in your current environment
+pip install -r requirements.txt
 ```
 
-This script will:
-- Create a Python virtual environment
-- Install all dependencies from `requirements.txt`
-- Create a `.env` file (you'll need to edit it with your credentials)
+## 3. Configure Your Credentials
 
-## 2. Configure Your Credentials
+Edit `.env` (created from `.env.example`) with your GitHub token:
 
-Edit `.env` with your GitHub token and SMEE URL:
-
-```bash
-nano .env
-```
-
-Required values:
 ```env
 GITHUB_TOKEN=ghp_xxxxxxxxxxxx  # Your GitHub Personal Access Token
 GITHUB_REPO=andrewporasl/RepoRecon
-SMEE_URL=https://smee.io/your-channel-url
 ```
 
 ### Get Your GitHub Token
 
 1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
 2. Click "Generate new token (classic)"
-3. Select these scopes:
-   - `repo` (full control)
-   - `read:user`
-4. Copy the token to `.env`
+3. Select these scopes: `repo` (full control), `read:user`.
 
-### Get Your SMEE URL
+## 4. Run Everything (Recommended)
 
-1. Go to [smee.io](https://smee.io)
-2. Click "Start a new channel"
-3. Copy the URL to `.env`
-
-## 3. Run the Backend
-
-### Terminal 1: Activate virtual environment and start FastAPI
+Instead of managing multiple terminals, use the unified dev command:
 
 ```bash
-source venv/bin/activate
-python3 -m uvicorn backend.main:app --reload --port 8000
+# Windows
+.\start-dev.bat
+
+# Manual
+npm run dev:all
 ```
 
-You should see:
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-INFO:     Application startup complete
-```
+This will automatically start:
+1.  **Frontend**: Next.js on `localhost:3000`
+2.  **Backend**: FastAPI on `localhost:8000` (using your global Python)
+3.  **Database**: Convex environment
 
-### Terminal 2: Start SMEE forwarding
+---
 
-```bash
-smee -u https://smee.io/your-channel-url -t http://localhost:8000/webhooks/github
-```
-
-### Terminal 3: Start Next.js frontend (in the project root)
-
-```bash
-npm run dev
-```
-
-## 4. Verify It's Working
+## 5. Verify It's Working
 
 ### Check Backend Health
-
 ```bash
 curl http://localhost:8000/health
 ```
 
-Expected response:
-```json
-{
-  "status": "healthy",
-  "github_connected": true,
-  "repo": "andrewporasl/RepoRecon"
-}
-```
-
-### Check API Endpoints
-
+### Check Terminal (AI Agent)
 ```bash
-# Get activity feed
-curl http://localhost:8000/api/activity
-
-# Get insights
-curl http://localhost:8000/api/insights
-
-# Test terminal (POST)
 curl -X POST http://localhost:8000/api/terminal \
   -H "Content-Type: application/json" \
-  -d '{"message": "Analyze the repository"}'
+  -d '{"message": "Hello Strategist"}'
 ```
 
-### Access Frontend
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-- **Activity Feed**: Should show real data from your GitHub repo
-- **Agent Insights**: Shows code analysis insights
-- **Terminal**: Interactive chat with the agent
-
-## 5. Project Structure
+## 6. Project Structure
 
 ```
 backend/
-├── __init__.py          # Package initialization
-├── main.py              # FastAPI app and routes
-├── models.py            # Pydantic data models
+├── main.py              # FastAPI app, Ollama integration
 ├── github_client.py     # GitHub API integration
-└── webhook_handler.py   # SMEE webhook processing
+├── models.py            # Pydantic data models
+└── webhook_handler.py   # Webhook processing logic
 ```
-
-## 6. API Endpoints Reference
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/` | GET | Health check |
-| `/health` | GET | Detailed health status |
-| `/api/activity` | GET | Recent repository activity |
-| `/api/insights` | GET | Code analysis insights |
-| `/api/terminal` | POST | Agent message handler |
-| `/webhooks/github` | POST | GitHub webhook receiver |
 
 ## 7. Troubleshooting
 
-### `ModuleNotFoundError: No module named 'fastapi'`
-- Make sure venv is activated: `source venv/bin/activate`
-- Reinstall deps: `pip install -r requirements.txt`
+### `Ollama Connection Failed`
+- Ensure `ollama serve` is running.
+- Ensure you have run `ollama pull llama3`.
 
-### `401 Unauthorized` from GitHub API
-- Check your `GITHUB_TOKEN` in `.env`
-- Verify token hasn't expired
+### `ModuleNotFoundError`
+- Ensure you have run `pip install -r requirements.txt`.
+- If using multiple Python versions, ensure `python` in your path matches the one where you installed dependencies.
 
-### SMEE not forwarding events
-- Confirm webhook URL is correct in GitHub settings
-- Check SMEE URL is correct in `.env`
-- Restart SMEE client
-
-### CORS errors in browser
-- Backend is already configured for `http://localhost:3000`
-- If using different port, edit `app.add_middleware` in `backend/main.py`
-
-### Can't connect to http://localhost:8000
-- Verify backend is running with `curl http://localhost:8000/`
-- Check port 8000 isn't in use: `lsof -i :8000`
-
-## 8. Next Steps
-
-See `MarkdownGuides/Backend.md` for:
-- Feature A & C integration code
-- Detailed GitHub API setup
-- SMEE webhook configuration
-- Full API documentation
+### CORS Errors
+- Backend is configured for `http://localhost:3000`. If running on a different port, update `allow_origins` in `backend/main.py`.
 
 ---
 

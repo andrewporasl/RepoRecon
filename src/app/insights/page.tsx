@@ -45,7 +45,6 @@ function ProgressBar({ progress, status }: { progress: number; status: AnalysisS
             setAnimatedProgress(100);
             return;
         }
-        // Simulate slow progress for "thinking" cards
         const interval = setInterval(() => {
             setAnimatedProgress((prev) => {
                 if (prev >= progress) {
@@ -59,9 +58,9 @@ function ProgressBar({ progress, status }: { progress: number; status: AnalysisS
     }, [progress, status]);
 
     return (
-        <div className="h-[2px] w-full bg-zinc-800/50 overflow-hidden">
+        <div className="h-[2px] w-full bg-border/50 overflow-hidden">
             <motion.div
-                className={status === "complete" ? "h-full bg-zinc-600" : "h-full bg-zinc-500"}
+                className="h-full bg-primary"
                 initial={{ width: 0 }}
                 animate={{ width: `${animatedProgress}%` }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
@@ -72,37 +71,34 @@ function ProgressBar({ progress, status }: { progress: number; status: AnalysisS
 
 function DiffBlock({ lines }: { lines: DiffLine[] }) {
     return (
-        <div className="mt-4 font-mono text-xs bg-zinc-950/50 rounded border border-zinc-800/50 overflow-hidden">
+        <div className="mt-4 font-mono text-xs bg-muted/30 rounded-lg border border-border overflow-hidden">
             {lines.map((line, i) => (
                 <div
                     key={i}
-                    className={`flex items-start px-3 py-0.5 ${
-                        line.type === "add"
-                            ? "bg-emerald-950/20"
+                    className={`flex items-start px-3 py-1 ${line.type === "add"
+                            ? "bg-emerald-500/5"
                             : line.type === "remove"
-                              ? "bg-rose-950/20"
-                              : ""
-                    }`}
+                                ? "bg-rose-500/5"
+                                : ""
+                        }`}
                 >
                     <span
-                        className={`w-4 shrink-0 select-none text-right mr-3 ${
-                            line.type === "add"
-                                ? "text-emerald-700"
+                        className={`w-4 shrink-0 select-none text-right mr-3 font-bold ${line.type === "add"
+                                ? "text-emerald-600"
                                 : line.type === "remove"
-                                  ? "text-rose-700"
-                                  : "text-zinc-700"
-                        }`}
+                                    ? "text-rose-600"
+                                    : "text-muted-foreground/50"
+                            }`}
                     >
                         {line.type === "add" ? "+" : line.type === "remove" ? "-" : " "}
                     </span>
                     <span
-                        className={`${
-                            line.type === "remove"
-                                ? "text-zinc-600 line-through"
+                        className={`${line.type === "remove"
+                                ? "text-muted-foreground line-through opacity-70"
                                 : line.type === "add"
-                                  ? "text-zinc-400"
-                                  : "text-zinc-500"
-                        }`}
+                                    ? "text-foreground"
+                                    : "text-muted-foreground"
+                            }`}
                     >
                         {line.content}
                     </span>
@@ -115,11 +111,10 @@ function DiffBlock({ lines }: { lines: DiffLine[] }) {
 function StatusLabel({ status }: { status: AnalysisStatus }) {
     return (
         <span
-            className={`text-[10px] tracking-widest uppercase font-medium ${
-                status === "complete" ? "text-zinc-500" : "text-zinc-600"
-            }`}
+            className={`text-[10px] tracking-widest uppercase font-semibold ${status === "complete" ? "text-primary" : "text-muted-foreground animate-pulse"
+                }`}
         >
-            {status === "complete" ? "COMPLETE" : "ANALYZING"}
+            {status === "complete" ? "Analysis Ready" : "Computing..."}
         </span>
     );
 }
@@ -141,65 +136,65 @@ export default function InsightsPage() {
             })
             .catch((err) => {
                 console.error("Failed to fetch insights, using fallback:", err);
-                setError("Backend unavailable — showing cached data");
+                setError("Using cached evaluation data");
                 setAnalyses(fallbackAnalyses);
                 setLoading(false);
             });
     }, []);
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 max-w-4xl mx-auto">
             <header>
-                <h1 className="text-3xl font-semibold tracking-tight text-zinc-100">Analysis</h1>
-                <p className="text-zinc-400 mt-2">
-                    Deep dive into repository changes and agent evaluations.
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Agent Insights</h1>
+                <p className="text-muted-foreground mt-2 leading-relaxed">
+                    Repository evaluations and structural analysis generated by the intelligence engine.
                 </p>
             </header>
 
             {error && (
-                <div className="text-xs text-zinc-600 bg-zinc-900/50 border border-zinc-800 rounded px-3 py-2">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 border-l border-border pl-3">
                     {error}
                 </div>
             )}
 
             {loading ? (
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-8">
                     {[1, 2].map((i) => (
-                        <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 animate-pulse">
-                            <div className="h-4 bg-zinc-800 rounded w-1/3 mb-4" />
-                            <div className="h-3 bg-zinc-800 rounded w-2/3" />
+                        <div key={i} className="bg-card border border-border rounded-xl p-6 shadow-sm animate-pulse">
+                            <div className="h-4 bg-muted rounded w-1/4 mb-4" />
+                            <div className="h-3 bg-muted rounded w-1/2" />
                         </div>
                     ))}
                 </div>
             ) : (
-            <div className="grid gap-6">
-                {analyses.map((analysis, index) => (
-                    <motion.div
-                        key={analysis.id}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden flex flex-col"
-                    >
-                        <ProgressBar progress={analysis.progress} status={analysis.status} />
+                <div className="grid gap-8">
+                    {analyses.map((analysis, index) => (
+                        <motion.div
+                            key={analysis.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
+                            className="bg-card border border-border rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow"
+                        >
+                            <ProgressBar progress={analysis.progress} status={analysis.status} />
 
-                        <div className="p-6 flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-zinc-100 font-medium text-lg">
-                                    {analysis.title}
-                                </h3>
-                                <StatusLabel status={analysis.status} />
+                            <div className="p-8 flex flex-col gap-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-foreground font-semibold text-xl tracking-tight">
+                                        {analysis.title}
+                                    </h3>
+                                    <StatusLabel status={analysis.status} />
+                                </div>
+
+                                <p className="text-muted-foreground text-sm leading-relaxed max-w-2xl">
+                                    {analysis.summary}
+                                </p>
+
+                                <DiffBlock lines={analysis.diff} />
                             </div>
-
-                            <p className="text-zinc-400 text-sm leading-relaxed">
-                                {analysis.summary}
-                            </p>
-
-                            <DiffBlock lines={analysis.diff} />
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
+                        </motion.div>
+                    ))}
+                </div>
             )}
         </div>
     );

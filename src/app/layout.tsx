@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Crimson_Pro, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { UserMenu } from "@/components/UserMenu";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const crimsonPro = Crimson_Pro({
+  variable: "--font-crimson",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
 const geistMono = Geist_Mono({
@@ -18,6 +20,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "RepoRecon",
   description: "Repository Reconnaisance & Analysis",
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%23181c18'/><circle cx='50' cy='50' r='28' fill='none' stroke='%2386efac' stroke-width='8'/><circle cx='50' cy='50' r='10' fill='%2386efac'/></svg>",
+  },
 };
 
 export default function RootLayout({
@@ -26,54 +31,51 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-400 font-sans min-h-screen flex`}
+        className={`${crimsonPro.variable} ${geistMono.variable} antialiased bg-background text-foreground font-sans min-h-screen flex`}
       >
         <ConvexClientProvider>
-          {/* Sidebar: Ghost Frame */}
-          <aside className="w-64 border-r border-zinc-800 flex flex-col p-6 gap-8 shrink-0">
-            <div className="flex items-center gap-2 px-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="font-semibold text-zinc-100 tracking-tight">RepoRecon</span>
+          {/* Sidebar */}
+          <aside className="w-60 bg-sidebar flex flex-col p-5 gap-5 shrink-0 border-r border-sidebar-border">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5 px-2 py-1 mt-1">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none" />
+              </svg>
+              <span className="text-lg font-semibold tracking-tight text-foreground">
+                RepoRecon
+              </span>
             </div>
 
-            <nav className="flex flex-col gap-2">
-              <Link
-                href="/"
-                className="px-3 py-2 rounded-md hover:bg-zinc-900/50 hover:text-zinc-100 transition-colors text-sm font-medium"
-              >
-                Overview
-              </Link>
-              <Link
-                href="/activity"
-                className="px-3 py-2 rounded-md hover:bg-zinc-900/50 hover:text-zinc-100 transition-colors text-sm font-medium"
-              >
-                Activity Feed
-              </Link>
-              <Link
-                href="/insights"
-                className="px-3 py-2 rounded-md hover:bg-zinc-900/50 hover:text-zinc-100 transition-colors text-sm font-medium"
-              >
-                Agent Insights
-              </Link>
-              <Link
-                href="/terminal"
-                className="px-3 py-2 rounded-md hover:bg-zinc-900/50 hover:text-zinc-100 transition-colors text-sm font-medium"
-              >
-                Terminal
-              </Link>
+            {/* Nav */}
+            <nav className="flex flex-col gap-0.5 mt-1">
+              {[
+                { name: "Overview", href: "/" },
+                { name: "Activity Feed", href: "/activity" },
+                { name: "Agent Insights", href: "/insights" },
+                { name: "Terminal", href: "/terminal" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+                >
+                  {item.name}
+                </Link>
+              ))}
             </nav>
 
-            {/* Push UserMenu to bottom of sidebar */}
+            {/* User */}
             <div className="mt-auto">
               <UserMenu />
             </div>
           </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 p-8 overflow-y-auto">
-            <div className="max-w-4xl mx-auto">
+          {/* Main */}
+          <main className="flex-1 overflow-y-auto bg-background">
+            <div className="max-w-4xl mx-auto px-8 py-10">
               {children}
             </div>
           </main>
@@ -82,5 +84,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-
