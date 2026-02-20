@@ -114,44 +114,58 @@ async def get_insights():
 
 @app.post("/api/terminal", response_model=TerminalResponse)
 async def handle_terminal_message(request: TerminalRequest):
-    """Handle terminal/agent message."""
+    """Handle terminal/agent message using Ollama."""
     try:
-        message = request.message.strip()
-
-        if not message:
+        user_message = request.message.strip()
+        if not user_message:
             raise HTTPException(status_code=400, detail="Empty message")
 
-        # Simple agent responses based on keywords
-        if "analyze" in message.lower():
-            response = "Analyzing the repository structure and recent changes. Found 3 significant commits in the past week. Code quality metrics are stable."
-        elif "activity" in message.lower() or "recent" in message.lower():
-            response = "Recent activity shows 2 merged PRs, 5 new commits, and 1 open issue. All tests passing."
-        elif "pr" in message.lower() or "pull" in message.lower():
-            response = "Currently tracking 2 open pull requests. Both have passed code review and are ready for merge."
-        elif "help" in message.lower() or "?" in message.lower():
-            response = "I can help you analyze the repository. Try asking about: recent activity, pull requests, code quality, or specific files."
-        else:
-            response = f"Processing your request: '{message}'. Analysis in progress. Please check the Insights tab for detailed findings."
+        # Context accumulation (simplify for now, just last few messages)
+        # In a real app, we'd manage full conversation history per session
+        
+        system_prompt = (
+            "You are 'Strategist', an advanced repository analysis AI for the RepoRecon system. "
+            "Your persona is technical, concise, and tactical. You speak like a senior engineer or ops commander. "
+            "You analyze code, architecture, and git history. "
+            "Current context: The user is asking about the 'andrewporasl/RepoRecon' repository. "
+            "Do not hallucinate files if you don't know them, but you can infer standard project structures. "
+            "Keep responses short and high-density. Avoid fluff."
+        )
 
-        # Add to message history
+        try:
+            import ollama
+            
+            # Attempt to generate response from local Ollama instance
+            response_data = ollama.chat(model='llama3', messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_message},
+            ])
+            
+            ai_content = response_data['message']['content']
+            
+        except Exception as e:
+            # Fallback if Ollama is not running or model missing
+            print(f"Ollama Error: {e}")
+            ai_content = (
+                f"⚠️ **Ollama Connection Failed**: {str(e)}\n\n"
+                "Ensure Ollama is running (`ollama serve`) and `llama3` is pulled.\n"
+                "Falling back to basic logic..."
+            )
+            # Minimal fallback logic
+            if "status" in user_message.lower():
+                ai_content += "\n\nSystem Status: Online. Github: Connected."
+            else:
+                ai_content += "\n\nI cannot process complex queries without my neural engine."
+
+        # Add to message history (in-memory)
         from datetime import datetime
         timestamp = datetime.now().strftime("%H:%M")
-        terminal_messages.append(
-            {
-                "role": "user",
-                "content": message,
-                "timestamp": timestamp,
-            }
-        )
-        terminal_messages.append(
-            {
-                "role": "agent",
-                "content": response,
-                "timestamp": timestamp,
-            }
-        )
+        
+        terminal_messages.append({"role": "user", "content": user_message, "timestamp": timestamp})
+        terminal_messages.append({"role": "agent", "content": ai_content, "timestamp": timestamp})
 
-        return TerminalResponse(response=response, timestamp=timestamp)
+        return TerminalResponse(response=ai_content, timestamp=timestamp)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Terminal error: {str(e)}")
 
